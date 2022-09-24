@@ -1,0 +1,135 @@
+---
+title: "This is an initial data analysis tool!"
+output:
+  html_document:
+    code_folding: hide
+    fig_width: 14
+    fig_height: 8
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+
+# set number of decimal places displayed
+options(scipen = 1, digits = 3)
+
+```
+
+```{r head}
+head(data, n=5) %>% kbl(caption="First five rows of analysed data") %>% kable_classic(full_width = F, html_font = "Cambria") 
+
+tail(data, n=5) %>% kbl(caption="Last five rows of analysed data") %>% kable_classic(full_width = F, html_font = "Cambria") 
+
+```
+
+## Initial data check:
+```{r initial_info, results ='asis'}
+# basic statistics
+source('functions/initial_info.R')
+initial_info(data)
+
+```
+
+```{r describe, width='300%'}
+# basic information
+psych::describe(data) %>% kbl() %>% kable_classic(full_width = T, html_font = "Cambria")
+
+```
+
+## Missings values
+```{r calc_missings, results='hide', message=FALSE, warning=FALSE}
+# missing values plots
+source('functions/calc_missings.R')
+calc_missings(data)
+
+```
+
+## Individual observations {.tabset}
+```{r individual variables, echo = FALSE, message=FALSE, warning=FALSE, results ='asis', width='130%'}
+# create subsets with statistics for each of the variables
+source("functions/plot_hist.R")
+
+# choose numerical variables for regression
+numerical_data = select_if(data, is.numeric)
+names_numerical = names(numerical_data)
+
+for(i in names(data)){
+  cat('\n###', i, '\n')
+  cat('\n')
+  print(kable(summary(data[,..i])))
+  cat('\n')
+  p <- plot_hist(unlist(data[,..i]))
+  print(p)
+  cat('\n')
+  print(kable(paste0(" Number of missing values: ", sum(is.na(data[,..i])))))
+  cat('\n')
+  print(kable(paste0("Percentage of missing values: ", round(sum(is.na(data[,..i]))/ nrow(data[,..i]),2), "%")))
+  cat('\n')
+  print(kable(paste0("Number of zeros: ", sum(data[,..i]==0))))
+  cat('\n')
+  if(i %in% names_numerical){
+    cat('=============== LINEAR MODEL ===============')
+    form1 = as.formula(paste(i, " ~ ."))
+    print(lm(form1, data = numerical_data) %>% tidy() %>% kable())
+  }
+  cat('\n')
+}
+```
+
+## Histograms 
+```{r histograms, results='hide', message=FALSE, warning=FALSE}
+# plot histograms for all numerical variables together
+ww<- ggplot(gather(dplyr::select_if(data, is.numeric)), aes(value)) + 
+       geom_histogram(bins = 30, fill="#464040") + 
+       facet_wrap(~key, scales = 'free_x') + 
+       theme(axis.title.x = element_blank(), axis.title.y = element_blank())
+
+suppressWarnings(print(ww))
+```
+
+## Bar plots 
+```{r bar plots, message=FALSE, warning=FALSE}
+# plot bar plots 
+source('functions/names_bar.R')
+all_of(names_bar(data))
+
+```
+
+## Correlations {.tabset}
+
+### Pearson's
+```{r correlation Pearson, results='hide', message=FALSE, warning=FALSE}
+# Pearson
+suppressWarnings( corrplot.mixed(cor(dplyr::select_if(data, is.numeric), use = "pairwise.complete.obs"), 
+                         bg="white", upper="pie",lower="number", tl.col="black", tl.pos="lt", diag="l",
+                         number.font=0.5, tl.cex=1, number.cex=0.55, title="Pearson's correlation", mar=c(0,0,1,0)) )
+
+```
+
+### Kendall's
+```{r correlation Kendall, results='hide', message=FALSE, warning=FALSE}
+# Kendall
+suppressWarnings(  corrplot.mixed(cor(dplyr::select_if(data[sample(1:nrow(data), min(c(750, nrow(data)))), ], is.numeric), use = "pairwise.complete.obs", method = 'kendal'), 
+                               bg="white", upper="pie",lower="number", tl.col="black", tl.pos="lt", diag="l",
+                               number.font=0.5, tl.cex=1, number.cex=0.55, title="Kendal's correlation", mar=c(0,0,1,0)) )
+```
+
+### Spearman's
+```{r correlation Spearman, results='hide', message=FALSE, warning=FALSE}
+# Spearman
+suppressWarnings( corrplot.mixed(cor(dplyr::select_if(data, is.numeric), use = "pairwise.complete.obs", method = 'spearman'), 
+                               bg="white", upper="pie",lower="number", tl.col="black", tl.pos="lt", diag="l", 
+                               number.font=0.5, tl.cex=1, number.cex=0.55, title="Spearman's correlation", mar=c(0,0,1,0)) )
+
+
+```
+
+## Principal Component Analysis
+```{r PCA, results='hide', message=FALSE, warning=FALSE}
+source('functions/clustering.R')
+# PCA 
+tryCatch(suppressWarnings(clustering(data[sample(1:nrow(data), 750), ])), error = function(e){print("Wrong type of data for PCA")})
+```
+
