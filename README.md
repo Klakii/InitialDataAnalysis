@@ -3,7 +3,7 @@ Maciej Zdanowicz
 #
 In the following project I have decided to create the tool for initial data analysis. The most popular 
 tool like that widely available is the DataExplorer library, which, in my humble opinion, was 
-not a very convenient tool to use nor did it suit my needs. 
+not a very convenient tool to use nor did it suit my needs. Example output is available here: https://rpubs.com/Zdanowiczz/1245043
 
 My project consists of three main parts:
 * folder called functions contains 6 functions used in our project; functions used for 
